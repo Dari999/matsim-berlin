@@ -1,48 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE transitSchedule SYSTEM "http://www.matsim.org/files/dtd/transitSchedule_v2.dtd">
 
 <transitSchedule>
 
     <transitStops>
         <stopFacility id="Nordkreuz" x="100.0" y="200.0" linkRefId="1" />
         <stopFacility id="Ostkreuz" x="200" y="100.0" linkRefId="2" />
-        <stopFacility id="Südkreuz" x="100.0" y="0" linkRefId="3" />
+        <stopFacility id="060058100531" x="100.0" y="0" linkRefId="3" />
         <stopFacility id="Westkreuz" x="0" y="100.0" linkRefId="4" />
-        <stopFacility id="Südkreuz2" x="100.0" y="0" linkRefId="5" />
+        <stopFacility id="060058100531.1" x="100.0" y="0" linkRefId="5" />
     </transitStops>
 
-    <transitLine id="S41">
-        <transitRoute id="S41--1">
+    <transitLine id="S41---10223_109">
+        <transitRoute id="S41---10223_109_0">
             <description></description>
             <transportMode>rail</transportMode>
             <routeProfile>
-                <stop refId="Südkreuz" departureOffset="00:00:00" awaitDeparture="true"/>
+                <stop refId="060058100531" arrivalOffset="00:00:00" departureOffset="00:00:00" awaitDeparture="true"/>
                 <stop refId="Westkreuz" arrivalOffset="00:12:20" departureOffset="00:12:50" awaitDeparture="true"/>
-                <stop refId="Nordkreuz" departureOffset="00:29:00" awaitDeparture="true"/>
-                <stop refId="Ostkreuz" departureOffset="00:33:50" awaitDeparture="true"/>
-                <stop refId="Südkreuz" departureOffset="00:59:30" awaitDeparture="true"/>
-            </routeProfile>
-            <route>
-                <link refId="3" />
-                <link refId="4" />
-                <link refId="1" />
-                <link refId="2" />
-                <link refId="5" />
-            </route>
-
-            <departures>
-                <departure id="D1" departureTime="07:00:00" />
-            </departures>
-
-        </transitRoute>
-        <transitRoute id="S41--2">
-            <description></description>
-            <transportMode>rail</transportMode>
-            <routeProfile>
-                <stop refId="Südkreuz" departureOffset="00:00:00" awaitDeparture="true"/>
-                <stop refId="Westkreuz" arrivalOffset="00:12:20" departureOffset="00:12:50" awaitDeparture="true"/>
-                <stop refId="Nordkreuz" departureOffset="00:29:00" awaitDeparture="true"/>
-                <stop refId="Ostkreuz" departureOffset="00:33:50" awaitDeparture="true"/>
-                <stop refId="Südkreuz" departureOffset="00:59:30" awaitDeparture="true"/>
+                <stop refId="Nordkreuz" arrivalOffset="00:28:20" departureOffset="00:29:00" awaitDeparture="true"/>
+                <stop refId="Ostkreuz" arrivalOffset="00:33:20" departureOffset="00:33:50" awaitDeparture="true"/>
+                <stop refId="060058100531.1" arrivalOffset="00:59:20" departureOffset="00:59:30" awaitDeparture="true"/>
             </routeProfile>
             <route>
                 <link refId="3" />
@@ -54,6 +32,35 @@
 
             <departures>
                 <departure id="D1" departureTime="08:00:00" />
+                <departure id="D2" departureTime="09:00:00" />
+                <departure id="D3" departureTime="10:00:00" />
+                <departure id="D4" departureTime="08:30:00" />
+                <departure id="D5" departureTime="09:30:00" />
+            </departures>
+
+        </transitRoute>
+        <transitRoute id="S41---10223_109_2">
+            <description></description>
+            <transportMode>rail</transportMode>
+            <routeProfile>
+                <stop refId="060058100531" arrivalOffset="00:00:00" departureOffset="00:00:00" awaitDeparture="true"/>
+                <stop refId="Westkreuz" arrivalOffset="00:12:20" departureOffset="00:12:50" awaitDeparture="true"/>
+                <stop refId="Nordkreuz" arrivalOffset="00:28:20" departureOffset="00:29:00" awaitDeparture="true"/>
+                <stop refId="Ostkreuz" arrivalOffset="00:33:20" departureOffset="00:33:50" awaitDeparture="true"/>
+                <stop refId="060058100531.1" arrivalOffset="00:59:20" departureOffset="00:59:30" awaitDeparture="true"/>
+            </routeProfile>
+            <route>
+                <link refId="3" />
+                <link refId="4" />
+                <link refId="1" />
+                <link refId="2" />
+                <link refId="5" />
+            </route>
+
+            <departures>
+                <departure id="D1" departureTime="07:00:00" />
+                <departure id="D1" departureTime="08:20:00" />
+
             </departures>
 
         </transitRoute>
@@ -63,11 +70,11 @@
             <description></description>
             <transportMode>rail</transportMode>
             <routeProfile>
-                <stop refId="Südkreuz" departureOffset="00:00:00" awaitDeparture="true"/>
-                <stop refId="Ostkreuz" arrivalOffset="00:14:20" departureOffset="00:14:50" awaitDeparture="true"/>
-                <stop refId="Nordkreuz" departureOffset="00:28:00" awaitDeparture="true"/>
-                <stop refId="Westkreuz" departureOffset="00:33:50" awaitDeparture="true"/>
-                <stop refId="Südkreuz" departureOffset="00:59:30" awaitDeparture="true"/>
+                <stop refId="060058100531" arrivalOffset="00:00:00" departureOffset="00:00:00" awaitDeparture="true"/>
+                <stop refId="Ostkreuz" arrivalOffset="00:33:20" departureOffset="00:33:50" awaitDeparture="true"/>
+                <stop refId="Nordkreuz" arrivalOffset="00:28:20" departureOffset="00:29:00" awaitDeparture="true"/>
+                <stop refId="Westkreuz" arrivalOffset="00:12:20" departureOffset="00:12:50" awaitDeparture="true"/>
+                <stop refId="060058100531.1" arrivalOffset="00:59:20" departureOffset="00:59:30" awaitDeparture="true"/>
             </routeProfile>
             <route>
                 <link refId="3" />
@@ -86,11 +93,11 @@
             <description></description>
             <transportMode>rail</transportMode>
             <routeProfile>
-                <stop refId="Südkreuz" departureOffset="00:00:00" awaitDeparture="true"/>
-                <stop refId="Ostkreuz" arrivalOffset="00:14:20" departureOffset="00:14:50" awaitDeparture="true"/>
-                <stop refId="Nordkreuz" departureOffset="00:28:00" awaitDeparture="true"/>
-                <stop refId="Westkreuz" departureOffset="00:33:50" awaitDeparture="true"/>
-                <stop refId="Südkreuz" departureOffset="00:59:30" awaitDeparture="true"/>
+                <stop refId="060058100531"  arrivalOffset="00:00:00" departureOffset="00:00:00" awaitDeparture="true"/>
+                <stop refId="Ostkreuz" arrivalOffset="00:33:20" departureOffset="00:33:50" awaitDeparture="true"/>
+                <stop refId="Nordkreuz" arrivalOffset="00:28:20" departureOffset="00:29:00" awaitDeparture="true"/>
+                <stop refId="Westkreuz" arrivalOffset="00:12:20" departureOffset="00:12:50" awaitDeparture="true"/>
+                <stop refId="060058100531.1" arrivalOffset="00:59:20" departureOffset="00:59:30" awaitDeparture="true"/>
             </routeProfile>
             <route>
                 <link refId="3" />

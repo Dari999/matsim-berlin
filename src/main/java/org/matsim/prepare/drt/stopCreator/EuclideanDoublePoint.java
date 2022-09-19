@@ -3,15 +3,14 @@ package org.matsim.prepare.drt.stopCreator;
 import org.apache.commons.math.stat.clustering.Clusterable;
 import org.apache.commons.math.util.MathUtils;
 
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
 
-public class ClusterableDouble implements Clusterable<ClusterableDouble> {
+public class EuclideanDoublePoint implements Clusterable<EuclideanDoublePoint> {
 
         private final double[] point;
 
-        public ClusterableDouble(double[] point) {
+        public EuclideanDoublePoint(double[] point) {
             this.point = point;
         }
 
@@ -19,16 +18,16 @@ public class ClusterableDouble implements Clusterable<ClusterableDouble> {
             return this.point;
         }
 
-        public double distanceFrom(ClusterableDouble p) {
+        public double distanceFrom(EuclideanDoublePoint p) {
             return MathUtils.distance(this.point, p.getPoint());
         }
 
-        public ClusterableDouble centroidOf(Collection<ClusterableDouble> points) {
+        public EuclideanDoublePoint centroidOf(Collection<EuclideanDoublePoint> points) {
             double[] centroid = new double[this.getPoint().length];
             Iterator i$ = points.iterator();
 
             while(i$.hasNext()) {
-                ClusterableDouble p = (ClusterableDouble)i$.next();
+                EuclideanDoublePoint p = (EuclideanDoublePoint)i$.next();
 
                 for(int i = 0; i < centroid.length; ++i) {
                     centroid[i] += p.getPoint()[i];
@@ -39,14 +38,14 @@ public class ClusterableDouble implements Clusterable<ClusterableDouble> {
                 centroid[i] /= points.size();
             }
 
-            return new ClusterableDouble(centroid);
+            return new EuclideanDoublePoint(centroid);
         }
 
         public boolean equals(Object other) {
-            if (!(other instanceof ClusterableDouble)) {
+            if (!(other instanceof EuclideanDoublePoint)) {
                 return false;
             } else {
-                double[] otherPoint = ((ClusterableDouble)other).getPoint();
+                double[] otherPoint = ((EuclideanDoublePoint)other).getPoint();
                 if (this.point.length != otherPoint.length) {
                     return false;
                 } else {

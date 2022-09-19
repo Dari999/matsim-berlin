@@ -37,11 +37,11 @@ public class DrtStopCreator extends MatsimXmlWriter{
     private static Scenario scenario;
     private Network network;
     private final String drtNetworkMode = "drt";
-    private final BerlinShpUtils shpUtils;
+//    private final BerlinShpUtils shpUtils;
     List<Link> loopLinks = new ArrayList<>();
     private final CoordinateTransformation ct;
-    String drtServiceAreaShapeFile = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v5.5-10pct/input/berlin-shp/berlin.shp";
-    String networkFile = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v5.5-10pct/input/berlin-v5.5-network.xml.gz";
+    String drtServiceAreaShapeFile;
+    String networkFile;
 
 
 
@@ -51,7 +51,7 @@ public class DrtStopCreator extends MatsimXmlWriter{
         Network network = NetworkUtils.readNetwork(networkFile);
         CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation("EPSG:31468", "EPSG:31468");
 //        Set<Link> carLinks = network.getNodes().values().stream().filter(node -> node.getInLinks().values().stream().filter(link -> link.getAllowedModes().contains(TransportMode.car)).collect().collect(Collectors.toSet());
-        DrtStopCreator dsc = new DrtStopCreator(drtServiceAreaShapeFile,networkFile, ct);
+        DrtStopCreator dsc = new DrtStopCreator(networkFile, drtServiceAreaShapeFile, ct);
         dsc.createLoopLinks(network);
         dsc.createStopsOnLoopLinks();
         dsc.createBerlinBusStopsOnly();
@@ -60,17 +60,23 @@ public class DrtStopCreator extends MatsimXmlWriter{
 
 
 
-    public DrtStopCreator(String drtServiceAreaShapeFile, String network, CoordinateTransformation ct){
+    public DrtStopCreator(String networkFile, String drtServiceAreaShapeFile, CoordinateTransformation ct){
         this.ct = ct;
+        this.networkFile=networkFile;
+        this.drtServiceAreaShapeFile=drtServiceAreaShapeFile;
         Config config = ConfigUtils.createConfig();
-        config.network().setInputFile(network);
+        config.network().setInputFile(networkFile);
         this.scenario = ScenarioUtils.createScenario(config);
 
 
 
-        shpUtils = new BerlinShpUtils(drtServiceAreaShapeFile);
 //        RunDrtOpenBerlinScenario.addDRTmode(scenario, drtNetworkMode, drtServiceAreaShapeFile, 0);
 
+    }
+    public DrtStopCreator(){
+        this.ct=TransformationFactory.getCoordinateTransformation("EPSG:31468", "EPSG:31468");
+        this.networkFile= "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v5.5-10pct/input/berlin-v5.5-network.xml.gz";
+        this.drtServiceAreaShapeFile="https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v5.5-10pct/input/berlin-shp/berlin.shp";
     }
 
     void createLoopLinks (Network network){
@@ -81,24 +87,24 @@ public class DrtStopCreator extends MatsimXmlWriter{
         for(Link link:primarySecondaryLinks){
            primaryNodes.add(link.getToNode());
         }
-            this.network = network;
+//            this.network = network;
 //            List<Node> loopNodes = this.network.getNodes().values().stream().filter(node -> node.getInLinks()..values().toString().contains("primary")).collect(Collectors.toList());
-        for(Node node : this.network.getNodes().values()){
+        for(Node node : network.getNodes().values()){
             if(!node.getInLinks().keySet().toString().contains("pt") && primaryNodes.contains(node)) {
                 Set<String> allowedModes = new HashSet<>(Arrays.asList("drt", "car"));
-                Link link = NetworkUtils.createAndAddLink(this.network, Id.createLinkId(node.getId() + "L"), node, node,
+                Link link = NetworkUtils.createAndAddLink(network, Id.createLinkId(node.getId() + "L"), node, node,
                         50, 8.333, 10000, 2);
                 link.setAllowedModes(allowedModes);
                 loopLinks.add(link);
             }
         }
-        NetworkWriter networkWriter = new NetworkWriter(this.network);
+        NetworkWriter networkWriter = new NetworkWriter(network);
         networkWriter.write("/Users/dariush/Desktop/BA-Ordner/MATSim/input/Network/drtNetwork-loopLinksP.xml");
     }
 
     private void createStopsOnLoopLinks() {   // (33000)
-        Scenario loopStopSchedule = ScenarioUtils.createScenario(ConfigUtils.createConfig());
-        TransitSchedule schedule = loopStopSchedule.getTransitSchedule();
+        Scenario loopStopScenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
+        TransitSchedule schedule = loopStopScenario.getTransitSchedule();
         TransitScheduleFactory scheduleFactory = schedule.getFactory();
         BerlinShpUtils berlinShpUtils = new BerlinShpUtils(drtServiceAreaShapeFile);
 
@@ -113,7 +119,7 @@ public class DrtStopCreator extends MatsimXmlWriter{
                 }
         }
 
-        TransitScheduleWriter scheduleWriter = new TransitScheduleWriter(scenario.getTransitSchedule());
+        TransitScheduleWriter scheduleWriter = new TransitScheduleWriter(loopStopScenario.getTransitSchedule());
         scheduleWriter.writeFileV2("/Users/dariush/Desktop/BA-Ordner/MATSim/input/DrtStopFile/loopStopFile.xml");
     }
 
@@ -123,7 +129,6 @@ public class DrtStopCreator extends MatsimXmlWriter{
         TransitScheduleFactory scheduleFactory = busStopSchedule.getFactory();
         Set<TransitStopFacility> busStops = new HashSet<>();
         Scenario scenarioForBusStops = ScenarioUtils.createScenario(ConfigUtils.createConfig());
-//        String reducedScheduleFile = "/Users/dariush/Desktop/BA-Ordner/MATSim/input/DrtStopFile/reduced-berlin-v5.5-transit-schedule.xml";
         TransitScheduleReader tsReader = new TransitScheduleReader(scenarioForBusStops);
         tsReader.readFile("https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v5.5-10pct/input/berlin-v5.5-transit-schedule.xml.gz");
         for(TransitLine transitLine : scenarioForBusStops.getTransitSchedule().getTransitLines().values()){
@@ -152,21 +157,21 @@ public class DrtStopCreator extends MatsimXmlWriter{
                 busStopSchedule.addStopFacility(transitStopFacility);
             }
         }
-        network = NetworkUtils.readNetwork(networkFile);
-        for(Link link:network.getLinks().values()){
+        Network networkWithoutPt = NetworkUtils.readNetwork(networkFile);
+        for(Link link:networkWithoutPt.getLinks().values()){
             if(link.getId().toString().contains("pt")){
-                network.removeLink(link.getId());
+                networkWithoutPt.removeLink(link.getId());
             }
         }
-        for(Node node:network.getNodes().values()){
+        for(Node node:networkWithoutPt.getNodes().values()){
             if(node.getId().toString().contains("pt")){
-                network.removeNode(node.getId());
+                networkWithoutPt.removeNode(node.getId());
             }
         }
 
 
         for(TransitStopFacility transitStopFacility: busStopSchedule.getFacilities().values()){
-            transitStopFacility.setLinkId(NetworkUtils.getNearestLink(network,transitStopFacility.getCoord()).getId());
+            transitStopFacility.setLinkId(NetworkUtils.getNearestLink(networkWithoutPt,transitStopFacility.getCoord()).getId());
         }
 
 
@@ -177,7 +182,7 @@ public class DrtStopCreator extends MatsimXmlWriter{
 //                    schedule.addStopFacility(transitStop);
 //            }
 //        }
-        TransitScheduleWriter scheduleWriter = new TransitScheduleWriter(scenario.getTransitSchedule());
+        TransitScheduleWriter scheduleWriter = new TransitScheduleWriter(busStopScenario.getTransitSchedule());
         scheduleWriter.writeFileV2("/Users/dariush/Desktop/BA-Ordner/MATSim/input/DrtStopFile/berlinBusStopsFile.xml");
     }
 

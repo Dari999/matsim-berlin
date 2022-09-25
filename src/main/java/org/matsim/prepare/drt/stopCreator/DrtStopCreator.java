@@ -11,6 +11,7 @@ import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.network.NetworkUtils;
+import org.matsim.core.network.algorithms.NetworkCalcTopoType;
 import org.matsim.core.network.algorithms.TransportModeNetworkFilter;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.collections.Tuple;
@@ -38,7 +39,7 @@ public class DrtStopCreator extends MatsimXmlWriter{
     private Network network;
     private final String drtNetworkMode = "drt";
 //    private final BerlinShpUtils shpUtils;
-    List<Link> loopLinks = new ArrayList<>();
+    List<Link> loopLinks = new ArrayList<>(); // 33000
     private final CoordinateTransformation ct;
     String drtServiceAreaShapeFile;
     String networkFile;
@@ -47,14 +48,14 @@ public class DrtStopCreator extends MatsimXmlWriter{
 
     public static void main(String[] args) {
         String networkFile = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v5.5-10pct/input/berlin-v5.5-network.xml.gz";
-        String drtServiceAreaShapeFile = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v5.5-10pct/input/berlin-shp/berlin.shp";
+        String drtServiceAreaShapeFile = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/projects/pave/shp-files/berlin-planungsraum-hundekopf/berlin-hundekopf-based-on-planungsraum.shp";
         Network network = NetworkUtils.readNetwork(networkFile);
         CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation("EPSG:31468", "EPSG:31468");
 //        Set<Link> carLinks = network.getNodes().values().stream().filter(node -> node.getInLinks().values().stream().filter(link -> link.getAllowedModes().contains(TransportMode.car)).collect().collect(Collectors.toSet());
         DrtStopCreator dsc = new DrtStopCreator(networkFile, drtServiceAreaShapeFile, ct);
         dsc.createLoopLinks(network);
         dsc.createStopsOnLoopLinks();
-        dsc.createBerlinBusStopsOnly();
+//        dsc.createBerlinBusStopsOnly();
 
     }
 
@@ -76,33 +77,39 @@ public class DrtStopCreator extends MatsimXmlWriter{
     public DrtStopCreator(){
         this.ct=TransformationFactory.getCoordinateTransformation("EPSG:31468", "EPSG:31468");
         this.networkFile= "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v5.5-10pct/input/berlin-v5.5-network.xml.gz";
-        this.drtServiceAreaShapeFile="https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v5.5-10pct/input/berlin-shp/berlin.shp";
+        this.drtServiceAreaShapeFile="https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/projects/pave/shp-files/berlin-planungsraum-hundekopf/berlin-hundekopf-based-on-planungsraum.shp";
     }
 
-    void createLoopLinks (Network network){
+    private void createLoopLinks (Network network){
         List<Node> primaryNodes = new ArrayList<>();
         Set<Link> primarySecondaryLinks = network.getLinks().values().stream()
                 .filter(link -> link.getAttributes().toString().contains("primary") || link.getAttributes().toString().contains("secondary"))
                 .collect(Collectors.toSet());
+
+        NetworkCalcTopoType networkCalcTopoType = new NetworkCalcTopoType();
+        networkCalcTopoType.run(network);
+
         for(Link link:primarySecondaryLinks){
            primaryNodes.add(link.getToNode());
         }
 //            this.network = network;
 //            List<Node> loopNodes = this.network.getNodes().values().stream().filter(node -> node.getInLinks()..values().toString().contains("primary")).collect(Collectors.toList());
         for(Node node : network.getNodes().values()){
-            if(!node.getInLinks().keySet().toString().contains("pt") && primaryNodes.contains(node)) {
+            // && networkCalcTopoType.getTopoType(node)==8
+            if(!node.getInLinks().keySet().toString().contains("pt") && primaryNodes.contains(node) && networkCalcTopoType.getTopoType(node)==8) {
                 Set<String> allowedModes = new HashSet<>(Arrays.asList("drt", "car"));
                 Link link = NetworkUtils.createAndAddLink(network, Id.createLinkId(node.getId() + "L"), node, node,
-                        50, 8.333, 10000, 2);
+                        5, 8.333, 10000, 20);
                 link.setAllowedModes(allowedModes);
                 loopLinks.add(link);
             }
         }
+
         NetworkWriter networkWriter = new NetworkWriter(network);
-        networkWriter.write("/Users/dariush/Desktop/BA-Ordner/MATSim/input/Network/drtNetwork-loopLinksP.xml");
+        networkWriter.write("/Users/dariush/Desktop/BA-Ordner/MATSim/input/Network/drtNetwork-loopLinksPShortIntersection.xml");
     }
 
-    private void createStopsOnLoopLinks() {   // (33000)
+    private void createStopsOnLoopLinks() {   // (3328)  // 2147 only Intersection
         Scenario loopStopScenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
         TransitSchedule schedule = loopStopScenario.getTransitSchedule();
         TransitScheduleFactory scheduleFactory = schedule.getFactory();
@@ -110,20 +117,21 @@ public class DrtStopCreator extends MatsimXmlWriter{
 
 
         for(int i=0;i<loopLinks.size();i++){
-            TransitStopFacility drtStop = scheduleFactory.createTransitStopFacility(Id.create("drtStop" + i, TransitStopFacility.class),
-                    new Coord(loopLinks.get(i).getCoord().getX(), loopLinks.get(i).getCoord().getY()), false);
-            drtStop.setLinkId(loopLinks.get(i).getId());
+            Coord loopLinkCoord = new Coord(loopLinks.get(i).getCoord().getX(), loopLinks.get(i).getCoord().getY());
+            if(berlinShpUtils.isCoordInDrtServiceArea(loopLinkCoord)) {
 
-                if(berlinShpUtils.isCoordInDrtServiceArea(drtStop.getCoord())){
-                    schedule.addStopFacility(drtStop);
-                }
+                TransitStopFacility drtStop = scheduleFactory.createTransitStopFacility(Id.create("drtStop" + i, TransitStopFacility.class),
+                        loopLinkCoord, false);
+                drtStop.setLinkId(loopLinks.get(i).getId());
+                schedule.addStopFacility(drtStop);
+            }
         }
 
         TransitScheduleWriter scheduleWriter = new TransitScheduleWriter(loopStopScenario.getTransitSchedule());
-        scheduleWriter.writeFileV2("/Users/dariush/Desktop/BA-Ordner/MATSim/input/DrtStopFile/loopStopFile.xml");
+        scheduleWriter.writeFileV2("/Users/dariush/Desktop/BA-Ordner/MATSim/input/DrtStopFile/loopStopShortIntersectionFile.xml");
     }
 
-    private void createBerlinBusStopsOnly(){ // 6500 in Berlin
+    private void createBerlinBusStopsOnly(){ // 6500 in Berlin --- 1661 Hundekopf
         Scenario busStopScenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
         TransitSchedule busStopSchedule = busStopScenario.getTransitSchedule();
         TransitScheduleFactory scheduleFactory = busStopSchedule.getFactory();
@@ -186,68 +194,12 @@ public class DrtStopCreator extends MatsimXmlWriter{
         scheduleWriter.writeFileV2("/Users/dariush/Desktop/BA-Ordner/MATSim/input/DrtStopFile/berlinBusStopsFile.xml");
     }
 
-    private void reduceStopsTo200() {
-
-
-    }
 
     public static Set<String> createHashSet(String... modes) {
         Set<String> set = new HashSet<String>();
         Collections.addAll(set, modes);
         return set;
     }
-
-//    private void writeDrtStopsXml() throws IOException, UncheckedIOException {
-//        this.writeXmlHead();
-//        this.writeDoctype("transitSchedule", "http://www.matsim.org/files/dtd/transitSchedule_v2.dtd");
-//        this.writeStartTag("transitSchedule", (List)null);
-//        this.writer.write("\n");
-//        this.writeStartTag("transitStops", (List)null);
-//        List<Tuple<String, String>> attributes = new ArrayList(5);
-//        Iterator var2 = this.scenario.getTransitSchedule().getFacilities().values().iterator();
-//        while(var2.hasNext()) {
-//            TransitStopFacility stop = (TransitStopFacility)var2.next();
-//            attributes.clear();
-//            attributes.add(createTuple("id", stop.getId().toString()));
-//            Coord coord = this.ct.transform(stop.getCoord());
-//            attributes.add(createTuple("x", coord.getX()));
-//            attributes.add(createTuple("y", coord.getY()));
-//            if (coord.hasZ()) {
-//                attributes.add(createTuple("z", coord.getZ()));
-//            }
-//
-//            if (stop.getLinkId() != null) {
-//                attributes.add(createTuple("linkRefId", stop.getLinkId().toString()));
-//            }
-//
-//            if (stop.getName() != null) {
-//                attributes.add(createTuple("name", stop.getName()));
-//            }
-//
-//            if (stop.getStopAreaId() != null) {
-//                attributes.add(createTuple("stopAreaId", stop.getStopAreaId().toString()));
-//            }
-//
-//            attributes.add(createTuple("isBlocking", stop.getIsBlockingLane()));
-////            if (AttributesUtils.isEmpty(stop.getAttributes())) {
-////                this.writeStartTag("stopFacility", attributes, true);
-////            } else {
-////                this.writeStartTag("stopFacility", attributes, false);
-////                if (!AttributesUtils.isEmpty(stop.getAttributes())) {
-////                    this.writer.write("\n");
-////                    this.attributesWriter.writeAttributes("\t\t\t", this.writer, stop.getAttributes());
-////                }
-////
-////                this.writeEndTag("stopFacility");
-////            }
-//        }
-//
-//        this.writeEndTag("transitStops");
-//        this.writeEndTag("transitSchedule");
-//        this.close();
-//    }
-
-
-    }
+}
 
 

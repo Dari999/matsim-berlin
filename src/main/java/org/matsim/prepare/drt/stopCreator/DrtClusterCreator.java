@@ -1,7 +1,9 @@
 package org.matsim.prepare.drt.stopCreator;
 
+import com.opencsv.CSVWriter;
 import org.apache.commons.math.stat.clustering.Cluster;
 import org.apache.commons.math.stat.clustering.KMeansPlusPlusClusterer;
+import org.apache.commons.math.util.MathUtils;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
@@ -12,15 +14,14 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.gbl.MatsimRandom;
 import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
 import org.matsim.pt.transitSchedule.api.TransitScheduleFactory;
 import org.matsim.pt.transitSchedule.api.TransitScheduleWriter;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
-import org.matsim.run.NetworkCleaner;
 
 import java.io.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class DrtClusterCreator {
     private String file;
@@ -33,80 +34,120 @@ public class DrtClusterCreator {
     }
 
     public DrtClusterCreator() {
-        this.file = "/Users/dariush/Downloads/hundekopf-rebalancing-2000vehicles-4seats.200.drt_legs_drt.csv";
-        this.networkFile = "/Users/dariush/Desktop/BA-Ordner/MATSim/input/Network/drtNetwork-loopLinksP.xml";
+//        this.file = "/Users/dariush/Downloads/hundekopf-rebalancing-2000vehicles-4seats.200.drt_legs_drt.csv";
+//        this.networkFile = "/Users/dariush/Desktop/BA-Ordner/MATSim/input/Network/drtNetwork-loopLinksP.xml";
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         if(args.length==0){
-
+            log.info("No args arguments");
         }
-
+//      arg[0] = legFile
+//      arg[1] = networkFile
+//      arg[2] = Anzahl Cluster
+//      arg[3] = maximale Iterationen (sollten 10 bis 15 sein)
+//      arg[4] = outputStopFile
+//      arg[5] = outputSSE
 
         DrtClusterCreator creator = new DrtClusterCreator();
-        String networkFile = creator.networkFile;           //args[4];
-        Network network = NetworkUtils.readNetwork(networkFile);
+//        String networkFile = creator.networkFile;           //args[1];
+        Network network = NetworkUtils.readNetwork(args[1]);
 //        System.out.println(creator.readData());
 
-        List<List<Double>> doublePointList = creator.readDataToDoubleList(creator.file);
-        List<String> clusterCenters = creator.getClusterCenters(doublePointList, creator.random, 2, 2);
+//        List<double[]> doublePointList = creator.readDataToDoubleList(creator.file);
+        List<double[]> doublePointList = creator.readDataToDoubleList(args[0]);
 
+        Map<double[], List<double[]>> clusters = creator.getClusters(doublePointList, creator.random, Integer.parseInt(args[2]), Integer.parseInt(args[3]));
+        List<double[]> clusterCenters = new ArrayList<>();
+        for(double[] d:clusters.keySet()){
+            clusterCenters.add(d);
+        }
 //        List<String> clusterCenters = creator.getClusterCenters(doublePointList, creator.random, Integer.valueOf(args[1]), Integer.valueOf(args[2]));
 
 
-        List<List<Double>> testList = new ArrayList<>();
-        testList.add(Arrays.asList(1.0,3.5));
-        testList.add(Arrays.asList(2.0,3.5));
-        testList.add(Arrays.asList(1.5,5.0));
-        testList.add(Arrays.asList(1.5,0.5));
-        testList.add(Arrays.asList(0.5,1.5));
-        testList.add(Arrays.asList(0.5,0.5));
-        testList.add(Arrays.asList(1.5,1.5));
-        testList.add(Arrays.asList(3.0,1.5));
-        testList.add(Arrays.asList(5.0,2.5));
-        testList.add(Arrays.asList(4.0,1.0));
-        testList.add(Arrays.asList(5.0,1.0));
-        testList.add(Arrays.asList(4.0,2.0));
+//        List<double[]> testList = new ArrayList<>();
+//        testList.add(new double[]{1.0, 3.5});
+//        testList.add(new double[]{2.0,3.5});
+//        testList.add(new double[]{1.5,5.0});
+//        testList.add(new double[]{1.5,0.5});
+//        testList.add(new double[]{0.5,1.5});
+//        testList.add(new double[]{0.5,0.5});
+//        testList.add(new double[]{1.5,1.5});
+//        testList.add(new double[]{3.0,1.5});
+//        testList.add(new double[]{5.0,2.5});
+//        testList.add(new double[]{4.0,1.0});
+//        testList.add(new double[]{5.0,1.0});
+//        testList.add(new double[]{4.0,2.0});
+//
+//        Map<double[], List<double[]>> testClusters = creator.getClusters(testList, creator.random, 3,5);
 
-//        List<String> testCenters = creator.getClusterCenters(testList, creator.random, 3,5);
-//        System.out.println(testCenters);
-        creator.stringToTransitStopFacility(clusterCenters, network);
+//        System.out.println(testClusters);
+        creator.centersToTransitStopFacility(clusterCenters, network, args[4]);
+
+        List<Double> sumOfSquaredErrors = new ArrayList<>();
+        for (int k = 1; k <= 2000; k++) {
+            Map<double[], List<double[]>> testClusters2 = creator.getClusters(doublePointList, creator.random, k,10);
+            double sse = creator.sse(testClusters2);
+            sumOfSquaredErrors.add(sse);
+        }
+//        List<String> sumOfSquaredErrorsStrings = new ArrayList<>();
+//        for(Double d:sumOfSquaredErrors){
+//            sumOfSquaredErrorsStrings.add(d.toString());
+//        }
+
+//        FileWriter fw = new FileWriter("/Users/dariush/Desktop/BA-Ordner/MATSim/output/SSE.csv");
+        FileWriter fw = new FileWriter(args[5]);
+        CSVWriter writer = new CSVWriter(fw);
+        for(Double d:sumOfSquaredErrors){
+            writer.writeNext(new String[]{Double.toString(d)});
+        }
+        writer.close();
+        fw.close();
 
     }
 
-    private void stringToTransitStopFacility(List<String> testCenters, Network network) {
+
+    private void centersToTransitStopFacility(List<double[]> clusterCenters, Network network, String outputFile) {
         Scenario kMeansScenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
         TransitSchedule schedule = kMeansScenario.getTransitSchedule();
         TransitScheduleFactory scheduleFactory = schedule.getFactory();
         List<Coord> coordList = new ArrayList<>();
+        List<Link> loopLinks = new ArrayList<>(); // 33000
 //        HashMap<Character, Character> replaceMap = new HashMap<>();
 //        replaceMap.p
-        for(String string: testCenters){
-            string = string.substring(1, string.length()-1);
-//            string.replaceAll(Character.toString(')'), Character.toString(' '));
-
-            System.out.println(string);
-            String[] parts = string.split(",");
-            double[] doubleArray = Arrays.stream(parts).mapToDouble(Double::parseDouble).toArray();
+        for(double[] doubleArray: clusterCenters){
+//            string = string.substring(1, string.length()-1);
+////            string.replaceAll(Character.toString(')'), Character.toString(' '));
+//
+//            System.out.println(string);
+//            String[] parts = string.split(",");
+//            double[] doubleArray = Arrays.stream(parts).mapToDouble(Double::parseDouble).toArray();
             coordList.add(new Coord(doubleArray[0],doubleArray[1]));
         }
-//        for(Link link: network.getLinks().values()){
-//            if(!link.getId().toString().contains("L")){
-//                network.removeLink(link.getId());
-//            }
-//        }
+        for(Link link: network.getLinks().values()){
+            if(link.getId().toString().contains("L")){
+                loopLinks.add(link);
+            }
+        }
 
         for(int i=0;i<coordList.size();i++){
+
             TransitStopFacility drtStop = scheduleFactory.createTransitStopFacility(Id.create("drtStop" + i, TransitStopFacility.class),
                     coordList.get(i), false);
-            drtStop.setLinkId(NetworkUtils.getNearestLink(network,coordList.get(i)).getId());
+//            drtStop.setLinkId(NetworkUtils.getNearestLink(network,coordList.get(i)).getId());
+            Link nearestLoopLink = getNearestLoopLink(loopLinks,coordList.get(i));
+            drtStop.setLinkId(nearestLoopLink.getId());
+            drtStop.setCoord(nearestLoopLink.getCoord());
             schedule.addStopFacility(drtStop);
         }
         TransitScheduleWriter scheduleWriter = new TransitScheduleWriter(kMeansScenario.getTransitSchedule());
-        scheduleWriter.writeFileV2("/Users/dariush/Desktop/BA-Ordner/MATSim/input/DrtStopFile/kMeansStopFile.xml");
+//        scheduleWriter.writeFileV2("/Users/dariush/Desktop/BA-Ordner/MATSim/input/DrtStopFile/kMeansLoopLinksStopFile.xml");
+        scheduleWriter.writeFileV2(outputFile);
+
     }
 
-    protected List<List<Double>> readDataToDoubleList(String file) {
+
+    protected List<double[]> readDataToDoubleList(String file) {
         log.info("Start reading File "+file);
         List<List<String>> records = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
@@ -123,7 +164,9 @@ public class DrtClusterCreator {
             e.printStackTrace();
         }
         List<List<String>> pointList = new ArrayList<>();
-        List<List<Double>> doublePointList = new ArrayList<>();
+//        List<List<Double>> doublePointList = new ArrayList<>();
+        List<double[]> doublePointList = new ArrayList<>();
+
 
         for(List<String> string:records.subList(1,records.size())){
             pointList.add(Arrays.asList(string.get(4),string.get(5)));
@@ -131,31 +174,77 @@ public class DrtClusterCreator {
         }
 
         for(List<String> string: pointList) {
+//            doublePointList.add(string.stream().map(s -> Double.valueOf(s)).collect(Collectors.toList()));
+            doublePointList.add(string.stream().mapToDouble(d-> Double.parseDouble(d)).toArray());
 
-            doublePointList.add(string.stream().map(s -> Double.valueOf(s)).collect(Collectors.toList()));
         }
         log.info("Finished reading");
         return doublePointList;
     }
 
-    List<String> getClusterCenters(List<List<Double>> doublePointList, Random random, int k, int maxIterations){
+    Map<double[], List<double[]>> getClusters(List<double[]> doubleArrayList, Random random, int k, int maxIterations){
         log.info("Start creating Cluster Centers");
         List<EuclideanDoublePoint> cDList = new ArrayList<>();
-        for(List<Double> doubleList:doublePointList){
-            double[] doubleArray= doubleList.stream().mapToDouble(d->d).toArray();
-            EuclideanDoublePoint cD = new EuclideanDoublePoint(doubleArray);
+        for(double[] d:doubleArrayList){
+//            double[] doubleArray= doubleList.stream().mapToDouble(d->d).toArray();
+            EuclideanDoublePoint cD = new EuclideanDoublePoint(d);
             cDList.add(cD);
         }
 
-        List<String> clusterCenter = new ArrayList<>();
+//        List<String> clusterCenter = new ArrayList<>();
+//        List<String> clusterPoints = new ArrayList<>();
+        Map<double[], List<double[]>> clusters = new HashMap<>();
+
+
         KMeansPlusPlusClusterer clusterer = new KMeansPlusPlusClusterer(random);
         List<Cluster> cluster = clusterer.cluster(cDList, k, maxIterations);
         for(Cluster c : cluster){
-            String string = c.getCenter().toString();
+            EuclideanDoublePoint eDP = (EuclideanDoublePoint) c.getCenter();
+            List<EuclideanDoublePoint> points = c.getPoints();
+            List<double[]> doublePoints = new ArrayList<>();
+            for(EuclideanDoublePoint p:points){
+                doublePoints.add(p.getPoint());
+            }
 //            Double d = Double.valueOf(string);
-            clusterCenter.add(string);
+            clusters.put(eDP.getPoint(), doublePoints);
+//            clusterCenter.add(string);
         }
-        return clusterCenter;
+        return clusters;
     }
+
+    private static Link getNearestLoopLink(List<Link> loopLinks, Coord coord) {
+        Link nearestLink = null;
+        double shortestDistance = 1.7976931348623157E308D;
+
+        Iterator var6 = loopLinks.iterator();
+
+        while(var6.hasNext()) {
+            Link link = (Link)var6.next();
+            double dist = CoordUtils.distancePointLinesegment(link.getFromNode().getCoord(), link.getToNode().getCoord(), coord);
+            if (dist < shortestDistance) {
+                shortestDistance = dist;
+                nearestLink = link;
+            }
+        }
+
+        if (nearestLink == null) {
+            log.warn("[nearestLink not found]");
+        }
+
+        return nearestLink;
+    }
+
+    public static double sse(Map<double[], List<double[]>> clustered) {
+        double sum = 0;
+        for (Map.Entry<double[], List<double[]>> entry : clustered.entrySet()) {
+            double[] centroid = entry.getKey();
+            for (double[] record : entry.getValue()) {
+                double d = MathUtils.distance(centroid, record);
+                sum += Math.pow(d, 2);
+            }
+        }
+        return sum;
+    }
+
 
 }

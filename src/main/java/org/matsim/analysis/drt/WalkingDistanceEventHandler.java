@@ -17,45 +17,50 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.*;
 
-/**
- * @author dtamleh
- */
+// person;trip_id;dep_time;trav_time;wait_time;distance;mode;start_link;start_x;start_y;end_link;end_x;end_y;access_stop_id;egress_stop_id;transit_line;transit_route;vehicle_id
 
-public class walkingDistanceEventHandler implements PersonDepartureEventHandler, PersonArrivalEventHandler {
+
+public class WalkingDistanceEventHandler implements PersonDepartureEventHandler, PersonArrivalEventHandler {
 
     Map<Id<Person>, Double> walkDistance = new HashMap();
     Map<Id<Person>, Double> departureTimes = new HashMap();
-    Map<Id<Link>, List<Double>> distances = new HashMap();
-    Map<Id<Link>, List<Double>> times = new HashMap();
+
 
     @Override
     public void handleEvent(PersonDepartureEvent event) {
-        if (event.getLegMode().equals("non_network_walk")) {
-            this.departureTimes.put(event.getPersonId(), event.getTime());
+        if (event.getLegMode().equals("walk")) {
+//            this.walkDistance.put(event.getPersonId(), event.getLinkId());
+//            PersonDepartureEvent.
+
         }
     }
 
-    public void handleEvent(PersonArrivalEvent event) {
-        if (this.departureTimes.containsKey(event.getPersonId()) && this.walkDistance.containsKey(event.getPersonId())) {
-            double walkD = (Double)this.walkDistance.remove(event.getPersonId());
-            double walkT = event.getTime() - (Double)this.departureTimes.remove(event.getPersonId());
-            Id<Link> linkId = event.getLinkId();
-            if (!this.distances.containsKey(linkId)) {
-                this.distances.put(linkId, new ArrayList());
-                this.times.put(linkId, new ArrayList());
-            }
-
-            ((List)this.distances.get(linkId)).add(walkD);
-            ((List)this.times.get(linkId)).add(walkT);
-        }
+    @Override
+    public void handleEvent(PersonArrivalEvent event){
 
     }
 
-    public void writeEgressWalkStatistics(String folder) {
-        String distanceFile = folder + "/egressWalkDistances.csv";
-        String timesFile = folder + "/egressWalkTimes.csv";
-        this.writeStats(this.distances, distanceFile);
-    }
+//    public void handleEvent(PersonArrivalEvent event) {
+//        if (this.departureTimes.containsKey(event.getPersonId()) && this.walkDistance.containsKey(event.getPersonId())) {
+//            double walkD = (Double)this.walkDistance.remove(event.getPersonId());
+//            double walkT = event.getTime() - (Double)this.departureTimes.remove(event.getPersonId());
+//            Id<Link> linkId = event.getLinkId();
+//            if (!this.distances.containsKey(linkId)) {
+//                this.distances.put(linkId, new ArrayList());
+//                this.times.put(linkId, new ArrayList());
+//            }
+//
+//            ((List)this.distances.get(linkId)).add(walkD);
+//            ((List)this.times.get(linkId)).add(walkT);
+//        }
+//
+//    }
+
+//    public void writeEgressWalkStatistics(String folder) {
+//        String distanceFile = folder + "/egressWalkDistances.csv";
+//        String timesFile = folder + "/egressWalkTimes.csv";
+//        this.writeStats(this.distances, distanceFile);
+//    }
 
     private void writeStats(Map<Id<Link>, List<Double>> map, String distanceFile) {
         BufferedWriter bw = IOUtils.getBufferedWriter(distanceFile);

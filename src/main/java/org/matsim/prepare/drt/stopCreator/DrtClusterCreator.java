@@ -10,6 +10,7 @@ import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
+import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.gbl.MatsimRandom;
 import org.matsim.core.network.NetworkUtils;
@@ -34,8 +35,8 @@ public class DrtClusterCreator {
     }
 
     public DrtClusterCreator() {
-//        this.file = "/Users/dariush/Downloads/hundekopf-rebalancing-2000vehicles-4seats.200.drt_legs_drt.csv";
-//        this.networkFile = "/Users/dariush/Desktop/BA-Ordner/MATSim/input/Network/drtNetwork-loopLinksP.xml";
+        this.file = "/Users/dariush/Downloads/hundekopf-rebalancing-2000vehicles-4seats.200.drt_legs_drt.csv";
+        this.networkFile = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v5.5-10pct/input/berlin-v5.5-network.xml.gz";
     }
 
     public static void main(String[] args) throws IOException {
@@ -48,16 +49,21 @@ public class DrtClusterCreator {
 //      arg[3] = maximale Iterationen (sollten 10 bis 15 sein)
 //      arg[4] = outputStopFile
 //      arg[5] = outputSSE
+//      args[6]= maxAnzahlClusterSSE
+//      args[7]= clusterInkrementSSE
+//      args[8]= clusterIterationsSSE
+
+
 
         DrtClusterCreator creator = new DrtClusterCreator();
 //        String networkFile = creator.networkFile;           //args[1];
-        Network network = NetworkUtils.readNetwork(args[1]);
+        Network network = NetworkUtils.readNetwork(creator.networkFile);
 //        System.out.println(creator.readData());
 
 //        List<double[]> doublePointList = creator.readDataToDoubleList(creator.file);
-        List<double[]> doublePointList = creator.readDataToDoubleList(args[0]);
+        List<double[]> doublePointList = creator.readDataToDoubleList(creator.file);
 
-        Map<double[], List<double[]>> clusters = creator.getClusters(doublePointList, creator.random, Integer.parseInt(args[2]), Integer.parseInt(args[3]));
+        Map<double[], List<double[]>> clusters = creator.getClusters(doublePointList, creator.random, 830, 15);
         List<double[]> clusterCenters = new ArrayList<>();
         for(double[] d:clusters.keySet()){
             clusterCenters.add(d);
@@ -82,27 +88,27 @@ public class DrtClusterCreator {
 //        Map<double[], List<double[]>> testClusters = creator.getClusters(testList, creator.random, 3,5);
 
 //        System.out.println(testClusters);
-        creator.centersToTransitStopFacility(clusterCenters, network, args[4]);
+        creator.centersToTransitStopFacility(clusterCenters, network, "/Users/dariush/Desktop/BA-Ordner/MATSim/input/DrtStopFile/clusterStopFile830.xml");
 
-        List<Double> sumOfSquaredErrors = new ArrayList<>();
-        for (int k = 1; k <= 2000; k++) {
-            Map<double[], List<double[]>> testClusters2 = creator.getClusters(doublePointList, creator.random, k,10);
-            double sse = creator.sse(testClusters2);
-            sumOfSquaredErrors.add(sse);
-        }
-//        List<String> sumOfSquaredErrorsStrings = new ArrayList<>();
-//        for(Double d:sumOfSquaredErrors){
-//            sumOfSquaredErrorsStrings.add(d.toString());
+//        List<Double> sumOfSquaredErrors = new ArrayList<>();
+//        for (int k = 1; k <= Integer.parseInt(args[6]); k+=Integer.parseInt(args[7])) {
+//            Map<double[], List<double[]>> testClusters2 = creator.getClusters(doublePointList, creator.random, k,Integer.parseInt(args[8]));
+//            double sse = creator.sse(testClusters2);
+//            sumOfSquaredErrors.add(sse);
 //        }
-
-//        FileWriter fw = new FileWriter("/Users/dariush/Desktop/BA-Ordner/MATSim/output/SSE.csv");
-        FileWriter fw = new FileWriter(args[5]);
-        CSVWriter writer = new CSVWriter(fw);
-        for(Double d:sumOfSquaredErrors){
-            writer.writeNext(new String[]{Double.toString(d)});
-        }
-        writer.close();
-        fw.close();
+////        List<String> sumOfSquaredErrorsStrings = new ArrayList<>();
+////        for(Double d:sumOfSquaredErrors){
+////            sumOfSquaredErrorsStrings.add(d.toString());
+////        }
+//
+////        FileWriter fw = new FileWriter("/Users/dariush/Desktop/BA-Ordner/MATSim/output/SSE.csv");
+//        FileWriter fw = new FileWriter(args[5]);
+//        CSVWriter writer = new CSVWriter(fw);
+//        for(Double d:sumOfSquaredErrors){
+//            writer.writeNext(new String[]{Double.toString(d)});
+//        }
+//        writer.close();
+//        fw.close();
 
     }
 
@@ -130,14 +136,31 @@ public class DrtClusterCreator {
             }
         }
 
+        Network networkWithoutPt = network;
+        for(Link link:networkWithoutPt.getLinks().values()){
+            if(link.getId().toString().contains("pt")){
+                networkWithoutPt.removeLink(link.getId());
+            }
+        }
+        for(Node node:networkWithoutPt.getNodes().values()){
+            if(node.getId().toString().contains("pt")){
+                networkWithoutPt.removeNode(node.getId());
+            }
+        }
+
         for(int i=0;i<coordList.size();i++){
 
             TransitStopFacility drtStop = scheduleFactory.createTransitStopFacility(Id.create("drtStop" + i, TransitStopFacility.class),
                     coordList.get(i), false);
-//            drtStop.setLinkId(NetworkUtils.getNearestLink(network,coordList.get(i)).getId());
-            Link nearestLoopLink = getNearestLoopLink(loopLinks,coordList.get(i));
-            drtStop.setLinkId(nearestLoopLink.getId());
-            drtStop.setCoord(nearestLoopLink.getCoord());
+
+//            Link nearestLoopLink = getNearestLoopLink(loopLinks,coordList.get(i));
+//            drtStop.setLinkId(nearestLoopLink.getId());
+//            drtStop.setCoord(nearestLoopLink.getCoord());
+
+            Link nearestLink = NetworkUtils.getNearestLink(networkWithoutPt,coordList.get(i));
+            drtStop.setLinkId(nearestLink.getId());
+            drtStop.setCoord(nearestLink.getCoord());
+
             schedule.addStopFacility(drtStop);
         }
         TransitScheduleWriter scheduleWriter = new TransitScheduleWriter(kMeansScenario.getTransitSchedule());
